@@ -3,7 +3,12 @@ const qrcode = require("qrcode-terminal");
 const fs = require("fs");
 const path = require("path");
 
-const client = new Client();
+const client = new Client({
+  puppeteer: {
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  },
+});
 
 client.on("qr", (qr) => {
   console.log("Escaneie o seguinte código QR com seu celular:");
