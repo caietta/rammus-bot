@@ -1,28 +1,13 @@
+const express = require("express");
 const { Client, MessageMedia } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const fs = require("fs");
 const path = require("path");
+const app = express();
+const stream = require("stream");
+const QRCode = require("qrcode");
 
-const client = new Client();
-
-client.on("qr", (qr) => {
-  console.log("Escaneie o seguinte código QR com seu celular:");
-  qrcode.generate(qr, { small: true });
-});
-
-client.on("ready", () => {
-  console.log("Cliente está pronto!");
-});
-
-client.on("message", async (message) => {
-  if (message.body.toLowerCase() === "rafinha") {
-    // Envia uma imagem aleatória
-    await enviarImagemAleatoria(message.from);
-  }
-});
-
-client.initialize();
-
+const port = 3000;
 async function enviarImagemAleatoria(chatId) {
   try {
     // Lista todos os arquivos de imagem no diretório 'imagens'
@@ -45,3 +30,38 @@ async function enviarImagemAleatoria(chatId) {
     console.error("Erro ao enviar imagem:", error);
   }
 }
+async function makeQRCode(qr, res) {
+  const qrStream = stream.PassThrough();
+  const result = await QRCode.toFileStream(qrStream, qr, {
+    type: "png",
+    width: 200,
+    errorCorrectionLevel: "H",
+  });
+
+  qrStream.pipe(res);
+}
+app.get("/", (req, res) => {
+  const client = new Client();
+
+  client.on("qr", (qr) => {
+    /* qrcode.generate(qr, { small: true }); */
+    makeQRCode(qr, res);
+  });
+
+  client.on("ready", () => {
+    console.log("Cliente está pronto!");
+  });
+
+  client.on("message", async (message) => {
+    if (message.body.toLowerCase() === "rafinha") {
+      // Envia uma imagem aleatória
+      await enviarImagemAleatoria(message.from);
+    }
+  });
+
+  client.initialize();
+});
+
+app.listen(port, () => {
+  console.log(`Servidor está rodando em http://localhost:${port}`);
+});
